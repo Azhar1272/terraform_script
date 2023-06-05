@@ -1,0 +1,6 @@
+sync_lambda/.serverless/
+terraform/.terraform.lock.hcl
+terraform/.terraform/
+.DS_Store
+sync_lambda/__pycache__/
+sync_lambda/app.ipynb

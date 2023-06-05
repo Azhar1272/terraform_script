@@ -1,0 +1,4 @@
+snowflake-connector-python
+boto3
+fastparquet
+sentry-sdk

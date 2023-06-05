@@ -1,0 +1,10 @@
+{
+    "name": "snowpipe-scheduling",
+    "version": "1.0.0",
+    "author": "jeandupuis@lucionservices.com",
+    "dependencies": {
+        "serverless": "^3.28.0",
+        "serverless-docker": "^0.0.5",
+        "serverless-scriptable-plugin": "^1.3.0"
+    }
+}

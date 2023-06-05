@@ -1,0 +1,77 @@
+name: release
+on:
+  push:
+    paths:
+      - '.github/**'
+      - 'sync_lambda/**'
+    branches:
+      - main
+      - dev
+
+env:
+  ECR_REPO_NAME: ${{ vars.ECR_REPO_NAME }}
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'prod' || 'sandbox' }}
+    strategy:
+      matrix:
+        node-version: [16.x]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zip
+          sudo apt-get install -y libc6-dev
+          sudo apt-get install -y libc6-dev-i386
+          # sudo apt-get install -y libc6-dev-amd64
+          # sudo apt-get install -y libc6-compat
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_DEFAULT_REGION }}
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+        id: login-ecr
+      - name: build and deploy the image to ECR
+        run: cd sync_lambda && sh docker_build.sh
+
+          
+# serverlessframework -> Deprecated
+  # deploy:
+  #   name: deploy
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       node-version: [16.x]
+  # needs: build
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v3
+  #     - name: Install Dependencies
+  #       run: |
+  #         sudo apt-get update
+  #         sudo apt-get install -y zip
+  #         sudo apt-get install -y libc6-dev
+  #         sudo apt-get install -y libc6-dev-i386
+  #         # sudo apt-get install -y libc6-dev-amd64
+  #         # sudo apt-get install -y libc6-compat
+  #     - name: Use Node.js ${{ matrix.node-version }}
+  #       uses: actions/setup-node@v3
+  #       with:
+  #         node-version: ${{ matrix.node-version }}
+  #     - run: "cd ./sync_lambda && npm install && npm ci"
+  #     - name: serverless deploy
+  #       uses: serverless/github-action@v3
+  #       with:
+  #         args: -c "cd ./sync_lambda && npm install request --save && serverless plugin install --name serverless-docker && serverless deploy"
+  #         entrypoint: /bin/sh
+  #       env:
+  #         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

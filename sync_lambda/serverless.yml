@@ -1,0 +1,96 @@
+service: snowpipe-scheduling
+
+provider:
+  name: aws
+  runtime: python3.9
+  stage: dev
+  region: eu-west-1
+  stackName: ${self:service}-stack
+  iam:
+    role:
+      name: ${self:service}-${self:provider.stage}-role
+      statements:
+        - Effect: Allow
+          Action:
+            - secretsmanager:Get*
+            - secretsmanager:Describe*
+            - secretsmanager:List*
+          Resource:
+            - arn:aws:secretsmanager:${self:provider.region}:*:secret:snowflake-params-lambda
+            - arn:aws:secretsmanager:${self:provider.region}:*:secret:snowflake-s3-access-user-keys
+        - Effect: Allow
+          Action:
+            - s3:List*
+            - s3:Describe*
+            - s3:Get*
+            - s3:Read*
+          Resource:
+            - arn:aws:s3:::data-transfer-nexgen-snowpipe
+            - arn:aws:s3:::data-transfer-nexgen-snowpipe/*
+
+  ecr:
+    # In this section you can define images that will be built locally and uploaded to ECR
+    images:
+      snowpipe-scheduling:
+        path: ./
+
+
+# Remove the serverless-python-requirements plugin
+plugins:
+  - serverless-docker
+  # - serverless-scriptable-plugin
+
+
+functions:
+  snowpipe-scheduling-function:
+    # # Specify the Docker image to use
+    image: ${self:custom.full_registryUrl}:latest
+    # Set the command to run inside the container
+    # command: handler.main
+    events:
+      - schedule:
+          rate: cron(0 * * * ? *) # Runs every hour
+    timeout: 900
+    memorySize: 256
+    #role: ${self:provider.iam.role.name}
+    role: arn:aws:iam::792835397580:role/${self:provider.iam.role.name}
+
+# Set up the plugin configuration
+custom:
+  # scriptHooks:
+  #   before:package:createDeploymentArtifacts: sh ./docker_build.sh
+  registryUrl: 792835397580.dkr.ecr.eu-west-1.amazonaws.com
+  full_registryUrl: ${self:custom.registryUrl}/${self:service}
+
+  docker:
+    stages:
+      - dev
+    imageName: ${self:custom.full_registryUrl}:latest
+    args:
+      # - --no-cache
+      - PYTHON_VERSION=${self:provider.runtime} # Pass the Python version as a build argument
+    registry:
+      # Replace with your own ECR repository URI
+      url: ${self:custom.registryUrl}
+      region: ${self:provider.region}
+
+
+# Exclude any packages that shouldn't be included in the deployment package
+package:
+  exclude:
+    - ./**
+  include:
+    - main.py
+
+resources:
+  Resources:
+    ScheduledEventRule:
+      Type: AWS::Events::Rule
+      Properties:
+        Name: hourly-rule
+        Description: Event rule that triggers every hour
+        ScheduleExpression: cron(0 * * * ? *)
+        State: ENABLED  
+        Targets:
+          - Arn: arn:aws:lambda:eu-west-1:792835397580:function:${self:service}-${self:provider.stage}-${self:service}-function
+            Id: hourly-rule-target

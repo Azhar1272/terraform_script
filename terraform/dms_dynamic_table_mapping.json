@@ -1,0 +1,30 @@
+{
+  "rules": [
+    {
+      "rule-type": "selection",
+      "rule-id": "1",
+      "rule-name": "All tables",
+      "object-locator": {
+        "schema-name": "%",
+        "table-name": "%"
+      },
+      "rule-action": "include",
+      "filters": [],
+      "object-mapping": {
+        "target-schema-name": "default",
+        "target-table-name": "${table-name}",
+        "group-type": "none",
+        "target-table-pre-pending": "",
+        "target-table-appending": "",
+        "target-table-attribute": "",
+        "object-path": "s3://data-transfer-nexgen-snowpipe/${table-schema}/${table-name}/",
+        "compression-type": "GZIP",
+        "format-type": "parquet",
+        "partition-key-name": "",
+        "partition-key": "",
+        "bucket-folder-structure": "schema_table",
+        "empty-bucket-action": "truncate"
+}
+    }
+  ]
+}
