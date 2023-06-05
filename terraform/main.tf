@@ -8,13 +8,7 @@ provider "aws" {
 
 }
 
-# provider "aws" {
-#   region = "${var.region}"
-#   // profile = "source"
-#   assume_role {
-#       role_arn = "${var.master_role}"
-#   }
-# }
+
 
 
 provider "snowflake" {
