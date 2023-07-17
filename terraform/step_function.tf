@@ -3,19 +3,51 @@ resource "aws_sfn_state_machine" "create_step_function_netsuite" {
   role_arn = aws_iam_role.create_iam_role_stepfunction_netsuite.arn
 
   definition = jsonencode(
-    {
-      "StartAt" : "start customer ingestion",
-      "States" : {
-        "start customer ingestion" : {
-          "Type" : "Task",
-          "Resource" : "arn:aws:states:::glue:startJobRun",
-          "Parameters" : {
-            "JobName" : "netsuite-get-customer"
-          },
-          "End" : true
+{
+  "StartAt": "Parallel",
+  "States": {
+    "Parallel": {
+      "Type": "Parallel",
+      "Branches": [
+        {
+          "StartAt": "customer",
+          "States": {
+            "customer": {
+              "Parameters": {
+                "JobName": "netsuite-get-restApi",
+                "Arguments": {
+                  "--service": "customer",
+                  "--kinesisfirehose": "netsuite-data-ingestion-customer"
+                }
+              },
+              "Resource": "arn:aws:states:::glue:startJobRun",
+              "Type": "Task",
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "purchaseOrder",
+          "States": {
+            "purchaseOrder": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::glue:startJobRun",
+              "Parameters": {
+                "JobName": "netsuite-get-restApi",
+                "Arguments": {
+                  "--service": "purchaseorder",
+                  "--kinesisfirehose": "netsuite-data-ingestion-purchaseorder"
+                }
+              },
+              "End": true
+            }
+          }
         }
-      }
+      ],
+      "End": true
     }
+  }
+}
   )
 }
 
